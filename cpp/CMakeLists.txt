@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(Vulkan REQUIRED)
 
-add_library(vulkan_device_selector SHARED device_selector.cpp device_selector_capi.cpp)
+add_library(vulkan_device_selector SHARED device_selector.cpp device_selector_capi.cpp compute_add.cpp)
 target_link_libraries(vulkan_device_selector Vulkan::Vulkan)
 
-add_executable(vulkan_learn main.cpp device_selector.cpp)
+add_executable(vulkan_learn main.cpp device_selector.cpp compute_add.cpp)
 target_link_libraries(vulkan_learn Vulkan::Vulkan)

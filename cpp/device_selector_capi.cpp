@@ -1,4 +1,5 @@
 #include "device_selector.hpp"
+#include "compute_add.hpp"
 #include <cstring>
 #include <cstdint>
 
@@ -91,6 +92,33 @@ void ds_destroy_device(int64_t handle) {
     if (sel->device) vkDestroyDevice(sel->device, nullptr);
     if (sel->instance) vkDestroyInstance(sel->instance, nullptr);
     delete sel;
+}
+
+int64_t ca_create(int64_t sel_handle, const char* shader_dir) {
+    if (!sel_handle) return 0;
+    auto* sel = reinterpret_cast<DeviceSelection*>(sel_handle);
+    auto* add = new ComputeAdd(sel->device, sel->physicalDevice, sel->queue, shader_dir);
+    return reinterpret_cast<int64_t>(add);
+}
+
+void ca_set_a(int64_t handle, float val) {
+    if (!handle) return;
+    reinterpret_cast<ComputeAdd*>(handle)->setA(val);
+}
+
+void ca_set_b(int64_t handle, float val) {
+    if (!handle) return;
+    reinterpret_cast<ComputeAdd*>(handle)->setB(val);
+}
+
+float ca_run(int64_t handle) {
+    if (!handle) return 0.0f;
+    return reinterpret_cast<ComputeAdd*>(handle)->run();
+}
+
+void ca_destroy(int64_t handle) {
+    if (!handle) return;
+    delete reinterpret_cast<ComputeAdd*>(handle);
 }
 
 }
