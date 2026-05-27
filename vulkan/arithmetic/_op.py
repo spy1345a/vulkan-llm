@@ -63,6 +63,22 @@ class Op:
         arr = (ctypes.c_float * len(data))(*data)
         _get_lib().op_set_b(self._handle, arr)
 
+    def set(self, *arrays):
+        if len(arrays) < 2:
+            raise ValueError("Need at least 2 arrays")
+        n = len(arrays[0])
+        for a in arrays:
+            if len(a) != n:
+                raise ValueError("All arrays must have same length")
+        self.set_a(arrays[0])
+        for arr in arrays[1:]:
+            self.set_b(arr)
+            self.run()
+            if arr is not arrays[-1]:
+                tmp = self.get_result()
+                self.set_a(tmp)
+        return self
+
     def run(self):
         _get_lib().op_run(self._handle)
 
