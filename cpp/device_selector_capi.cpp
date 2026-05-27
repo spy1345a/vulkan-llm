@@ -1,5 +1,6 @@
 #include "device_selector.hpp"
 #include "arithmetic/op.hpp"
+#include "arithmetic/matmul.hpp"
 #include <cstring>
 #include <cstdint>
 
@@ -133,6 +134,39 @@ int op_count(int64_t handle) {
 void op_destroy(int64_t handle) {
     if (!handle) return;
     delete reinterpret_cast<Op*>(handle);
+}
+
+int64_t mm_create(int64_t sel_handle, const char* shader_path, int M, int K, int N) {
+    if (!sel_handle || M <= 0 || K <= 0 || N <= 0) return 0;
+    auto* sel = reinterpret_cast<DeviceSelection*>(sel_handle);
+    auto* mm = new MatMul(sel->device, sel->physicalDevice, sel->queue,
+                          shader_path, M, K, N);
+    return reinterpret_cast<int64_t>(mm);
+}
+
+void mm_set_a(int64_t handle, const float* data) {
+    if (!handle) return;
+    reinterpret_cast<MatMul*>(handle)->setA(data);
+}
+
+void mm_set_b(int64_t handle, const float* data) {
+    if (!handle) return;
+    reinterpret_cast<MatMul*>(handle)->setB(data);
+}
+
+void mm_run(int64_t handle) {
+    if (!handle) return;
+    reinterpret_cast<MatMul*>(handle)->run();
+}
+
+void mm_get_result(int64_t handle, float* out) {
+    if (!handle) return;
+    reinterpret_cast<MatMul*>(handle)->getResult(out);
+}
+
+void mm_destroy(int64_t handle) {
+    if (!handle) return;
+    delete reinterpret_cast<MatMul*>(handle);
 }
 
 }

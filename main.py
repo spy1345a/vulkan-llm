@@ -1,38 +1,37 @@
-from vulkan import devices, select_device, Add, Sub, Mul, Div
+from vulkan import devices, select_device, Add, Sub, Mul, Div, MatMul
 
 devices()
 
 dev = select_device(0)
 
-a = [1, 2, 3, 4, 5]
-b = [10, 20, 30, 40, 50]
-
+# --- element-wise ops ---
 op = Add(dev)
-op.set_a(a)
-op.set_b(b)
+op.set_a([1, 2, 3])
+op.set_b([10, 20, 30])
 op.run()
-print(f"add: {a} + {b} = {op.get_result()}")
+print(f"add: {op.get_result()}")
 op.close()
 
-op = Sub(dev)
-op.set_a([10, 20, 30])
-op.set_b([3, 5, 7])
-op.run()
-print(f"sub: {op.get_result()}")
-op.close()
+# --- matrix multiply ---
+# A = [[1, 2],
+#      [3, 4]]
+# B = [[5, 6],
+#      [7, 8]]
+# C = A * B = [[19, 22],
+#              [43, 50]]
 
-op = Mul(dev)
-op.set_a([2, 3, 4])
-op.set_b([5, 6, 7])
-op.run()
-print(f"mul: {op.get_result()}")
-op.close()
+M, K, N = 2, 2, 2
+A = [1, 2,  3, 4]        # row-major: M×K
+B = [5, 6,  7, 8]        # row-major: K×N
 
-op = Div(dev)
-op.set_a([10, 20, 30])
-op.set_b([2, 4, 5])
-op.run()
-print(f"div: {op.get_result()}")
-op.close()
+mm = MatMul(dev, M, K, N)
+mm.set_a(A)
+mm.set_b(B)
+mm.run()
+res = mm.get_result()
+print(f"matmul {M}x{K} * {K}x{N}:")
+print(f"  [[{res[0]}, {res[1]}],")
+print(f"   [{res[2]}, {res[3]}]]")
+mm.close()
 
 dev.close()

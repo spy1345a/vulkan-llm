@@ -1,5 +1,6 @@
 from vulkan._device import VulkanDevice
 from vulkan.arithmetic._op import Op
+from vulkan.arithmetic._matmul import MatMul
 
 
 class Add(Op):
