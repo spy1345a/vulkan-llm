@@ -1,5 +1,5 @@
 #include "device_selector.hpp"
-#include "compute_add.hpp"
+#include "arithmetic/op.hpp"
 #include <iostream>
 
 int main() {
@@ -13,11 +13,28 @@ int main() {
     printDeviceInfo(sel.properties);
 
     {
-        ComputeAdd adder(sel.device, sel.physicalDevice, sel.queue);
-        adder.setA(7.0f);
-        adder.setB(5.0f);
-        float result = adder.run();
-        std::cout << "7 + 5 = " << result << "\n";
+        Op add(sel.device, sel.physicalDevice, sel.queue, "arithmetic/shaders/add.spv");
+        add.setA(7.0f);
+        add.setB(5.0f);
+        std::cout << "7 + 5 = " << add.run() << "\n";
+    }
+    {
+        Op sub(sel.device, sel.physicalDevice, sel.queue, "arithmetic/shaders/sub.spv");
+        sub.setA(7.0f);
+        sub.setB(5.0f);
+        std::cout << "7 - 5 = " << sub.run() << "\n";
+    }
+    {
+        Op mul(sel.device, sel.physicalDevice, sel.queue, "arithmetic/shaders/mul.spv");
+        mul.setA(7.0f);
+        mul.setB(5.0f);
+        std::cout << "7 * 5 = " << mul.run() << "\n";
+    }
+    {
+        Op div(sel.device, sel.physicalDevice, sel.queue, "arithmetic/shaders/div.spv");
+        div.setA(7.0f);
+        div.setB(5.0f);
+        std::cout << "7 / 5 = " << div.run() << "\n";
     }
 
     destroyDeviceSelection(sel);

@@ -3,11 +3,11 @@
 #include <string>
 #include <vector>
 
-class ComputeAdd {
+class Op {
 public:
-    ComputeAdd(VkDevice device, VkPhysicalDevice physDev, VkQueue queue,
-               const char* shaderDir = "shader/");
-    ~ComputeAdd();
+    Op(VkDevice device, VkPhysicalDevice physDev, VkQueue queue,
+       const std::string& shaderPath);
+    ~Op();
 
     void setA(float val);
     void setB(float val);

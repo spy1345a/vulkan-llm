@@ -1,10 +1,9 @@
-#include "compute_add.hpp"
-#include "device_selector.hpp"
+#include "op.hpp"
+#include "../device_selector.hpp"
 #include <fstream>
 #include <iostream>
-#include <cstring>
 
-std::vector<uint32_t> ComputeAdd::loadSPIRV(const std::string& path) {
+std::vector<uint32_t> Op::loadSPIRV(const std::string& path) {
     std::ifstream f(path, std::ios::binary | std::ios::ate);
     if (!f) { std::cerr << "Cannot open: " << path << "\n"; return {}; }
     size_t size = f.tellg();
@@ -15,11 +14,11 @@ std::vector<uint32_t> ComputeAdd::loadSPIRV(const std::string& path) {
     return code;
 }
 
-uint32_t ComputeAdd::findMemType(uint32_t typeBits) {
+uint32_t Op::findMemType(uint32_t typeBits) {
     return findMemoryType(physDev, typeBits);
 }
 
-void ComputeAdd::createStorageBuffer(VkBuffer& buf, VkDeviceMemory& mem) {
+void Op::createStorageBuffer(VkBuffer& buf, VkDeviceMemory& mem) {
     VkBufferCreateInfo bi{};
     bi.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bi.size        = sizeof(float);
@@ -38,15 +37,13 @@ void ComputeAdd::createStorageBuffer(VkBuffer& buf, VkDeviceMemory& mem) {
     vkBindBufferMemory(device, buf, mem, 0);
 }
 
-ComputeAdd::ComputeAdd(VkDevice dev, VkPhysicalDevice phys, VkQueue q,
-                       const char* shaderDir)
+Op::Op(VkDevice dev, VkPhysicalDevice phys, VkQueue q,
+       const std::string& shaderPath)
     : device(dev), physDev(phys), queue(q) {
 
     createStorageBuffer(bufferA, memoryA);
     createStorageBuffer(bufferB, memoryB);
     createStorageBuffer(bufferOut, memoryOut);
-
-    std::cout << "Buffers ready\n";
 
     VkDescriptorSetLayoutBinding bindings[3]{};
     for (uint32_t i = 0; i < 3; i++) {
@@ -67,8 +64,7 @@ ComputeAdd::ComputeAdd(VkDevice dev, VkPhysicalDevice phys, VkQueue q,
     pli.pSetLayouts    = &dsl;
     vkCreatePipelineLayout(device, &pli, nullptr, &pipelineLayout);
 
-    std::string spvPath = std::string(shaderDir) + "add.comp.spv";
-    auto spirv = loadSPIRV(spvPath);
+    auto spirv = loadSPIRV(shaderPath);
     if (spirv.empty()) { std::cerr << "Failed to load SPIRV\n"; return; }
     VkShaderModuleCreateInfo smci{};
     smci.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -84,8 +80,6 @@ ComputeAdd::ComputeAdd(VkDevice dev, VkPhysicalDevice phys, VkQueue q,
     cpci.stage.module = shaderMod;
     cpci.stage.pName  = "main";
     vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &cpci, nullptr, &pipeline);
-
-    std::cout << "Pipeline ready\n";
 
     VkDescriptorPoolSize poolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3};
     VkDescriptorPoolCreateInfo dpci{};
@@ -130,7 +124,7 @@ ComputeAdd::ComputeAdd(VkDevice dev, VkPhysicalDevice phys, VkQueue q,
     vkAllocateCommandBuffers(device, &cbai, &cmd);
 }
 
-ComputeAdd::~ComputeAdd() {
+Op::~Op() {
     vkDestroyCommandPool(device, cmdPool, nullptr);
     vkDestroyDescriptorPool(device, descPool, nullptr);
     vkDestroyPipeline(device, pipeline, nullptr);
@@ -145,21 +139,21 @@ ComputeAdd::~ComputeAdd() {
     vkDestroyBuffer(device, bufferOut, nullptr);
 }
 
-void ComputeAdd::setA(float val) {
+void Op::setA(float val) {
     void* mapped;
     vkMapMemory(device, memoryA, 0, sizeof(float), 0, &mapped);
     *(float*)mapped = val;
     vkUnmapMemory(device, memoryA);
 }
 
-void ComputeAdd::setB(float val) {
+void Op::setB(float val) {
     void* mapped;
     vkMapMemory(device, memoryB, 0, sizeof(float), 0, &mapped);
     *(float*)mapped = val;
     vkUnmapMemory(device, memoryB);
 }
 
-float ComputeAdd::run() {
+float Op::run() {
     void* mapped;
     vkMapMemory(device, memoryOut, 0, sizeof(float), 0, &mapped);
     *(float*)mapped = 0.0f;

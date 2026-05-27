@@ -1,5 +1,5 @@
 #include "device_selector.hpp"
-#include "compute_add.hpp"
+#include "arithmetic/op.hpp"
 #include <cstring>
 #include <cstdint>
 
@@ -94,31 +94,31 @@ void ds_destroy_device(int64_t handle) {
     delete sel;
 }
 
-int64_t ca_create(int64_t sel_handle, const char* shader_dir) {
+int64_t op_create(int64_t sel_handle, const char* shader_path) {
     if (!sel_handle) return 0;
     auto* sel = reinterpret_cast<DeviceSelection*>(sel_handle);
-    auto* add = new ComputeAdd(sel->device, sel->physicalDevice, sel->queue, shader_dir);
-    return reinterpret_cast<int64_t>(add);
+    auto* op = new Op(sel->device, sel->physicalDevice, sel->queue, shader_path);
+    return reinterpret_cast<int64_t>(op);
 }
 
-void ca_set_a(int64_t handle, float val) {
+void op_set_a(int64_t handle, float val) {
     if (!handle) return;
-    reinterpret_cast<ComputeAdd*>(handle)->setA(val);
+    reinterpret_cast<Op*>(handle)->setA(val);
 }
 
-void ca_set_b(int64_t handle, float val) {
+void op_set_b(int64_t handle, float val) {
     if (!handle) return;
-    reinterpret_cast<ComputeAdd*>(handle)->setB(val);
+    reinterpret_cast<Op*>(handle)->setB(val);
 }
 
-float ca_run(int64_t handle) {
+float op_run(int64_t handle) {
     if (!handle) return 0.0f;
-    return reinterpret_cast<ComputeAdd*>(handle)->run();
+    return reinterpret_cast<Op*>(handle)->run();
 }
 
-void ca_destroy(int64_t handle) {
+void op_destroy(int64_t handle) {
     if (!handle) return;
-    delete reinterpret_cast<ComputeAdd*>(handle);
+    delete reinterpret_cast<Op*>(handle);
 }
 
 }

@@ -1,5 +1,5 @@
 from vulkan._device import get_device_count, get_device_info, VulkanDevice
-from vulkan._add import Adder
+from vulkan.arithmetic import Add, Sub, Mul, Div
 
 _device_list = [get_device_info(i) for i in range(get_device_count())]
 

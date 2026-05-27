@@ -7,5 +7,5 @@ layout(set = 0, binding = 2) buffer BufOut { float result; };
 layout(local_size_x = 1) in;
 
 void main() {
-    result = a + b;
+    result = a * b;
 }
