@@ -10,7 +10,7 @@ def _get_lib() -> ctypes.CDLL:
     if _lib is not None:
         return _lib
     candidates = [
-        Path(__file__).parent / "cpp" / "build" / "libvulkan_device_selector.so",
+        Path(__file__).resolve().parent.parent / "cpp" / "build" / "libvulkan_device_selector.so",
         ctypes.util.find_library("vulkan_device_selector"),
     ]
     for path in candidates:

@@ -1,7 +1,7 @@
-import vulkan
+from vulkan import devices, select_device
 
-vulkan.devices()
+devices()
 
-gpu = vulkan.select_device(0)
+gpu = select_device(0)
 print(f"\n{gpu.name}")
 gpu.close()
