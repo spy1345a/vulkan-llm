@@ -1,0 +1,11 @@
+#version 450
+
+layout(set = 0, binding = 0) buffer BufA   { float a; };
+layout(set = 0, binding = 1) buffer BufB   { float b; };
+layout(set = 0, binding = 2) buffer BufOut { float result; };
+
+layout(local_size_x = 1) in;
+
+void main() {
+    result = a + b;
+}
