@@ -24,12 +24,18 @@ dev = select_device(0)
 # Sum 4 arrays at once on your "obsolete" GPU
 op = Add(dev)
 op.set([1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12])
-print(op.get_result())   # [22.0, 26.0, 30.0]
+result = op.get_result()
+op.close()
+print(result)            # [22.0, 26.0, 30.0]
 
 # Matrix multiply on hardware that "can't do AI"
 mm = MatMul(dev)
 mm.set_a([[1, 2], [3, 4]]).set_b([[5, 6], [7, 8]]).run()
-print(mm.get_result())   # [[19, 22], [43, 50]]
+result = mm.get_result()
+mm.close()
+print(result)            # [[19.0, 22.0], [43.0, 50.0]]
+
+dev.close()
 ```
 
 The above runs on an **AMD Radeon RX 580** — a 2017 GPU worth ~$50 used that no modern AI framework talks to. It has 2304 shaders and 8 GB VRAM. That's not "e-waste" — that's a parallel compute engine waiting for software.
