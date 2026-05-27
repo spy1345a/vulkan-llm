@@ -2,21 +2,27 @@
 #include <vulkan/vulkan.h>
 #include <string>
 #include <vector>
+#include <cstdint>
 
 class Op {
 public:
     Op(VkDevice device, VkPhysicalDevice physDev, VkQueue queue,
-       const std::string& shaderPath);
+       const std::string& shaderPath, uint32_t count);
     ~Op();
 
-    void setA(float val);
-    void setB(float val);
-    float run();
+    void setA(const float* data);
+    void setB(const float* data);
+    void run();
+    void getResult(float* out);
+
+    uint32_t count() const { return count_; }
 
 private:
     VkDevice device;
     VkPhysicalDevice physDev;
     VkQueue queue;
+    uint32_t count_;
+    VkDeviceSize bufSize_;
 
     VkBuffer bufferA = VK_NULL_HANDLE;
     VkBuffer bufferB = VK_NULL_HANDLE;

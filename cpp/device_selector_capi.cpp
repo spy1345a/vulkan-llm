@@ -94,26 +94,37 @@ void ds_destroy_device(int64_t handle) {
     delete sel;
 }
 
-int64_t op_create(int64_t sel_handle, const char* shader_path) {
-    if (!sel_handle) return 0;
+int64_t op_create(int64_t sel_handle, const char* shader_path, int count) {
+    if (!sel_handle || count <= 0) return 0;
     auto* sel = reinterpret_cast<DeviceSelection*>(sel_handle);
-    auto* op = new Op(sel->device, sel->physicalDevice, sel->queue, shader_path);
+    auto* op = new Op(sel->device, sel->physicalDevice, sel->queue,
+                      shader_path, static_cast<uint32_t>(count));
     return reinterpret_cast<int64_t>(op);
 }
 
-void op_set_a(int64_t handle, float val) {
+void op_set_a(int64_t handle, const float* data) {
     if (!handle) return;
-    reinterpret_cast<Op*>(handle)->setA(val);
+    reinterpret_cast<Op*>(handle)->setA(data);
 }
 
-void op_set_b(int64_t handle, float val) {
+void op_set_b(int64_t handle, const float* data) {
     if (!handle) return;
-    reinterpret_cast<Op*>(handle)->setB(val);
+    reinterpret_cast<Op*>(handle)->setB(data);
 }
 
-float op_run(int64_t handle) {
-    if (!handle) return 0.0f;
-    return reinterpret_cast<Op*>(handle)->run();
+void op_run(int64_t handle) {
+    if (!handle) return;
+    reinterpret_cast<Op*>(handle)->run();
+}
+
+void op_get_result(int64_t handle, float* out) {
+    if (!handle) return;
+    reinterpret_cast<Op*>(handle)->getResult(out);
+}
+
+int op_count(int64_t handle) {
+    if (!handle) return 0;
+    return static_cast<int>(reinterpret_cast<Op*>(handle)->count());
 }
 
 void op_destroy(int64_t handle) {

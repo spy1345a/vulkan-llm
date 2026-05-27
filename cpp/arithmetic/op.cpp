@@ -2,6 +2,10 @@
 #include "../device_selector.hpp"
 #include <fstream>
 #include <iostream>
+#include <cstring>
+#include <cmath>
+
+static constexpr uint32_t WORKGROUP_SIZE = 256;
 
 std::vector<uint32_t> Op::loadSPIRV(const std::string& path) {
     std::ifstream f(path, std::ios::binary | std::ios::ate);
@@ -21,7 +25,7 @@ uint32_t Op::findMemType(uint32_t typeBits) {
 void Op::createStorageBuffer(VkBuffer& buf, VkDeviceMemory& mem) {
     VkBufferCreateInfo bi{};
     bi.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bi.size        = sizeof(float);
+    bi.size        = bufSize_;
     bi.usage       = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     vkCreateBuffer(device, &bi, nullptr, &buf);
@@ -38,8 +42,9 @@ void Op::createStorageBuffer(VkBuffer& buf, VkDeviceMemory& mem) {
 }
 
 Op::Op(VkDevice dev, VkPhysicalDevice phys, VkQueue q,
-       const std::string& shaderPath)
-    : device(dev), physDev(phys), queue(q) {
+       const std::string& shaderPath, uint32_t count)
+    : device(dev), physDev(phys), queue(q), count_(count),
+      bufSize_(static_cast<VkDeviceSize>(count) * sizeof(float)) {
 
     createStorageBuffer(bufferA, memoryA);
     createStorageBuffer(bufferB, memoryB);
@@ -97,9 +102,9 @@ Op::Op(VkDevice dev, VkPhysicalDevice phys, VkQueue q,
     vkAllocateDescriptorSets(device, &dsai, &descSet);
 
     VkDescriptorBufferInfo dbi[3]{};
-    dbi[0] = {bufferA,   0, sizeof(float)};
-    dbi[1] = {bufferB,   0, sizeof(float)};
-    dbi[2] = {bufferOut, 0, sizeof(float)};
+    dbi[0] = {bufferA,   0, bufSize_};
+    dbi[1] = {bufferB,   0, bufSize_};
+    dbi[2] = {bufferOut, 0, bufSize_};
     VkWriteDescriptorSet writes[3]{};
     for (uint32_t i = 0; i < 3; i++) {
         writes[i].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -139,24 +144,24 @@ Op::~Op() {
     vkDestroyBuffer(device, bufferOut, nullptr);
 }
 
-void Op::setA(float val) {
+void Op::setA(const float* data) {
     void* mapped;
-    vkMapMemory(device, memoryA, 0, sizeof(float), 0, &mapped);
-    *(float*)mapped = val;
+    vkMapMemory(device, memoryA, 0, bufSize_, 0, &mapped);
+    std::memcpy(mapped, data, bufSize_);
     vkUnmapMemory(device, memoryA);
 }
 
-void Op::setB(float val) {
+void Op::setB(const float* data) {
     void* mapped;
-    vkMapMemory(device, memoryB, 0, sizeof(float), 0, &mapped);
-    *(float*)mapped = val;
+    vkMapMemory(device, memoryB, 0, bufSize_, 0, &mapped);
+    std::memcpy(mapped, data, bufSize_);
     vkUnmapMemory(device, memoryB);
 }
 
-float Op::run() {
+void Op::run() {
     void* mapped;
-    vkMapMemory(device, memoryOut, 0, sizeof(float), 0, &mapped);
-    *(float*)mapped = 0.0f;
+    vkMapMemory(device, memoryOut, 0, bufSize_, 0, &mapped);
+    std::memset(mapped, 0, bufSize_);
     vkUnmapMemory(device, memoryOut);
 
     VkCommandBufferBeginInfo cbbi{};
@@ -166,7 +171,9 @@ float Op::run() {
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
                             pipelineLayout, 0, 1, &descSet, 0, nullptr);
-    vkCmdDispatch(cmd, 1, 1, 1);
+
+    uint32_t groups = (count_ + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE;
+    vkCmdDispatch(cmd, groups, 1, 1);
     vkEndCommandBuffer(cmd);
 
     VkSubmitInfo si{};
@@ -175,9 +182,11 @@ float Op::run() {
     si.pCommandBuffers    = &cmd;
     vkQueueSubmit(queue, 1, &si, VK_NULL_HANDLE);
     vkQueueWaitIdle(queue);
+}
 
-    vkMapMemory(device, memoryOut, 0, sizeof(float), 0, &mapped);
-    float result = *(float*)mapped;
+void Op::getResult(float* out) {
+    void* mapped;
+    vkMapMemory(device, memoryOut, 0, bufSize_, 0, &mapped);
+    std::memcpy(out, mapped, bufSize_);
     vkUnmapMemory(device, memoryOut);
-    return result;
 }
