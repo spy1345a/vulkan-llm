@@ -26,9 +26,6 @@ def _get_lib():
     _lib.op_get_result.restype = None
     _lib.op_get_result.argtypes = [ctypes.c_int64, ctypes.POINTER(ctypes.c_float)]
 
-    _lib.op_count.restype = ctypes.c_int
-    _lib.op_count.argtypes = [ctypes.c_int64]
-
     _lib.op_destroy.restype = None
     _lib.op_destroy.argtypes = [ctypes.c_int64]
 
@@ -39,27 +36,38 @@ _SHADER_DIR = str(Path(__file__).resolve().parent.parent.parent / "cpp" / "arith
 
 
 class Op:
-    def __init__(self, device_handle: int, shader_name: str, count: int):
-        shader_path = _SHADER_DIR + shader_name
+    def __init__(self, device_handle: int, shader_name: str):
+        self._dev_handle = device_handle
+        self._shader_name = shader_name
+        self._handle = 0
+        self._count = 0
+
+    def _ensure(self, count: int):
+        if self._handle and self._count == count:
+            return
+        if self._handle:
+            self.close()
         self._count = count
-        self._arr_type = ctypes.c_float * count
-        self._handle = _get_lib().op_create(device_handle, shader_path.encode(), count)
+        path = _SHADER_DIR + self._shader_name
+        self._handle = _get_lib().op_create(self._dev_handle, path.encode(), count)
         if self._handle == 0:
-            raise RuntimeError(f"Failed to create Op for {shader_name}")
+            raise RuntimeError(f"Failed to create Op for {self._shader_name}")
 
     def set_a(self, data: list):
-        arr = self._arr_type(*data)
+        self._ensure(len(data))
+        arr = (ctypes.c_float * len(data))(*data)
         _get_lib().op_set_a(self._handle, arr)
 
     def set_b(self, data: list):
-        arr = self._arr_type(*data)
+        self._ensure(len(data))
+        arr = (ctypes.c_float * len(data))(*data)
         _get_lib().op_set_b(self._handle, arr)
 
     def run(self):
         _get_lib().op_run(self._handle)
 
     def get_result(self) -> list:
-        out = self._arr_type()
+        out = (ctypes.c_float * self._count)()
         _get_lib().op_get_result(self._handle, out)
         return list(out)
 
@@ -67,6 +75,7 @@ class Op:
         if self._handle:
             _get_lib().op_destroy(self._handle)
             self._handle = 0
+            self._count = 0
 
     def __del__(self):
         self.close()

@@ -130,6 +130,7 @@ Op::Op(VkDevice dev, VkPhysicalDevice phys, VkQueue q,
 }
 
 Op::~Op() {
+    vkDeviceWaitIdle(device);
     vkDestroyCommandPool(device, cmdPool, nullptr);
     vkDestroyDescriptorPool(device, descPool, nullptr);
     vkDestroyPipeline(device, pipeline, nullptr);

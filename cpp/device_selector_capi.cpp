@@ -89,7 +89,10 @@ int ds_get_selected_device_type(int64_t handle) {
 void ds_destroy_device(int64_t handle) {
     if (!handle) return;
     auto* sel = reinterpret_cast<DeviceSelection*>(handle);
-    if (sel->device) vkDestroyDevice(sel->device, nullptr);
+    if (sel->device) {
+        vkDeviceWaitIdle(sel->device);
+        vkDestroyDevice(sel->device, nullptr);
+    }
     if (sel->instance) vkDestroyInstance(sel->instance, nullptr);
     delete sel;
 }
